@@ -46,7 +46,7 @@ const passSchemas = {
     visitorId: Joi.string().required(),
     appointmentId: Joi.string().allow(null, ""),
     validFrom: Joi.date().required(),
-    validTo: Joi.date().required()
+    validTo: Joi.date().required().greater(Joi.ref("validFrom"))
   })
 };
 

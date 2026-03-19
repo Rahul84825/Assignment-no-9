@@ -37,15 +37,15 @@ exports.createAppointment = async (req, res, next) => {
       purpose: purpose,
       startTime: start,
       endTime: end,
-      status: "pending", // default status will be pending
+      status: "pending",
     });
 
     await appointment.save();
-    console.log(`[Appointment Created] ID: ${appointment._id}`);
+    console.log("Appointment created");
 
     res.status(201).json(appointment);
   } catch (err) {
-    console.error(`[Appointment Creation Error] ${err.message}`);
+    console.log("Create appt error:", err.message);
     next(err);
   }
 };

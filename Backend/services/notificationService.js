@@ -29,7 +29,7 @@ const sendEmail = async (to, subject, text) => {
 
 // send pass update email
 const sendPassEmail = async (visitorEmail, passCode, status) => {
-  // simple message
+
   const subject = "Visitor Pass Update";
 
   const message = `

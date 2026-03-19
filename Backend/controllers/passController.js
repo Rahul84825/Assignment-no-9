@@ -1,4 +1,3 @@
-const { nanoid } = require("nanoid");
 const { Pass } = require("../models/Pass.js");
 const { Visitor } = require("../models/Visitor.js");
 const { Appointment } = require("../models/Appointment.js");
@@ -15,106 +14,65 @@ const convertDate = (val) => {
   return d;
 };
 
+// function to generate random pass code (student style)
+const generateCode = () => {
+  return "VP-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+};
+
 // issue new pass
 exports.issuePass = async (req, res, next) => {
   try {
     const { visitorId, appointmentId, validFrom, validTo } = req.body;
 
-    // check required fields
-    if (!visitorId || !validFrom || !validTo) {
-      return res.status(400).json({
-        message: "visitorId, validFrom and validTo are required",
-      });
-    }
-
-    const from = convertDate(validFrom);
-    const to = convertDate(validTo);
-
-    // validate dates
-    if (!from || !to) {
-      return res.status(400).json({
-        message: "Invalid date",
-      });
-    }
-
-    // check logic
-    if (to <= from) {
-      return res.status(400).json({
-        message: "validTo must be greater than validFrom",
-      });
-    }
-
-    // check visitor exists
     const visitor = await Visitor.findById(visitorId);
-    if (!visitor) {
-      return res.status(404).json({
-        message: "Visitor not found",
-      });
-    }
+    if (!visitor) return res.status(404).json({ message: "Visitor not found" });
 
     let appointment = null;
+    let hostName = "Walk-in";
 
-    // if appointment is given
     if (appointmentId) {
-      appointment = await Appointment.findById(appointmentId).populate("host", "name");
-
-      if (!appointment) {
-        return res.status(404).json({
-          message: "Appointment not found",
-        });
-      }
-
-      // only approved appointments allowed
-      if (appointment.status !== "approved") {
-        return res.status(400).json({
-          message: "Appointment not approved",
-        });
+      appointment = await Appointment.findById(appointmentId).populate("host");
+      if (appointment && appointment.host) {
+        hostName = appointment.host.name;
       }
     }
 
-    // generate unique pass code
-    const passCode = "VP-" + nanoid(8).toUpperCase();
+    const passCode = generateCode();
 
-    // create pass (initially qrData empty)
+    // creating pass object
     const pass = new Pass({
-      visitor: visitor._id,
-      appointment: appointment ? appointment._id : null,
+      visitor: visitorId,
+      appointment: appointmentId || null,
       passCode: passCode,
       qrData: "pending",
       issuedBy: req.user?._id,
-      validFrom: from,
-      validTo: to,
+      validFrom: new Date(validFrom),
+      validTo: new Date(validTo),
     });
 
+    // save first to get ID
     await pass.save();
 
-    // generate QR data and store it in DB
-    const qrData = await buildQrData(pass);
-    pass.qrData = qrData;
-
-    // generate qr image
+    // generate QR and PDF
+    const qrData = JSON.stringify({ code: passCode, visitor: visitorId });
     const qrUrl = await generateQrDataUrl(qrData);
-
-    const hostName = appointment && appointment.host ? appointment.host.name : "Walk-in";
-
-    // create PDF pass with visitor + QR details
+    
     const pdfPath = await generatePassPdf({
       pass,
       visitor,
       hostName,
       qrDataUrl: qrUrl,
-      uploadDir: process.env.UPLOAD_DIR || "uploads",
+      uploadDir: "uploads"
     });
 
+    // update pass with details
+    pass.qrData = qrData;
     pass.pdfPath = pdfPath;
-
     await pass.save();
 
-    res.status(201).json({
-      pass,
-      qrDataUrl: qrUrl,
-    });
+    res.status(201).json({ pass, qrDataUrl: qrUrl });
   } catch (err) {
+    console.log("Error in issuePass:", err.message);
     next(err);
   }
 };
