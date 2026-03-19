@@ -93,21 +93,18 @@ exports.login = async (req, res, next) => {
 
     const user = await User.findOne({ email: cleanEmail });
 
-    // check user exists
     if (!user) {
       return res.status(401).json({
         message: "Invalid credentials",
       });
     }
 
-    // check if account active
     if (!user.isActive) {
       return res.status(403).json({
         message: "Account is deactivated",
       });
     }
 
-    // compare password
     const isMatch = await verifyPassword(password, user.passwordHash);
 
     if (!isMatch) {
@@ -126,7 +123,6 @@ exports.login = async (req, res, next) => {
       }
     }
 
-    // generate token
     const token = genToken(user);
 
     res.json({
