@@ -53,56 +53,32 @@ exports.exportCSV = async (req, res, next) => {
   }
 };
 
-/**
- * Export logs as PDF
- */
+// export logs as PDF
 exports.exportPDF = async (req, res, next) => {
   try {
     const logs = await CheckLog.find()
-      .populate("visitor", "firstName lastName email")
+      .populate("visitor", "firstName lastName")
       .populate("pass", "passCode")
-      .sort({ timestamp: -1 })
-      .lean();
+      .sort({ timestamp: -1 });
 
-    const doc = new PDFDocument({ margin: 30, size: "A4" });
+    const doc = new PDFDocument();
     
-    res.header("Content-Type", "application/pdf");
-    res.attachment(`vms_report_${Date.now()}.pdf`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=report-${Date.now()}.pdf`);
     doc.pipe(res);
 
-    // Title
-    doc.fontSize(20).text("Visitor Management System - Log Report", { align: "center" });
-    doc.moveDown();
-    doc.fontSize(10).text(`Generated on: ${new Date().toLocaleString()}`, { align: "right" });
+    doc.fontSize(20).text("Visitor Log Report", { align: "center" });
     doc.moveDown();
 
-    // Table Header
-    const tableTop = 150;
-    doc.font("Helvetica-Bold");
-    doc.text("Timestamp", 30, tableTop);
-    doc.text("Visitor Name", 150, tableTop);
-    doc.text("Pass Code", 300, tableTop);
-    doc.text("Action", 400, tableTop);
-    doc.text("Gate", 500, tableTop);
-    
-    doc.moveTo(30, tableTop + 15).lineTo(560, tableTop + 15).stroke();
-    doc.font("Helvetica");
-
-    let y = tableTop + 25;
     logs.forEach((log) => {
-      if (y > 750) {
-        doc.addPage();
-        y = 50;
-      }
+      const visitorName = log.visitor ? `${log.visitor.firstName} ${log.visitor.lastName}` : "Unknown";
+      const passCode = log.pass ? log.pass.passCode : "N/A";
       
-      doc.fontSize(9);
-      doc.text(new Date(log.timestamp).toLocaleString(), 30, y);
-      doc.text(`${log.visitor?.firstName || ""} ${log.visitor?.lastName || ""}`, 150, y);
-      doc.text(log.pass?.passCode || "", 300, y);
-      doc.text(log.action.toUpperCase(), 400, y);
-      doc.text(log.gate || "N/A", 500, y);
-      
-      y += 20;
+      doc.fontSize(12).text(`Time: ${new Date(log.timestamp).toLocaleString()}`);
+      doc.text(`Visitor: ${visitorName}`);
+      doc.text(`Pass: ${passCode}`);
+      doc.text(`Action: ${log.action.toUpperCase()}`);
+      doc.moveDown();
     });
 
     doc.end();

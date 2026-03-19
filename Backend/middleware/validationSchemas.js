@@ -1,24 +1,11 @@
 const Joi = require("joi");
 
-/**
- * Validation schemas for various entities in the system.
- * These schemas ensure incoming request bodies match the expected structure
- * and contain valid data types, improving system reliability and security.
- */
-
-// User authentication/registration schemas
+// User login and register validation
 const authSchemas = {
   register: Joi.object({
-    name: Joi.string().min(2).max(50).required().messages({
-      "string.min": "Name must be at least 2 characters long",
-      "any.required": "Name is a required field"
-    }),
-    email: Joi.string().email().required().messages({
-      "string.email": "Please provide a valid email address"
-    }),
-    password: Joi.string().min(6).required().messages({
-      "string.min": "Password must be at least 6 characters long"
-    }),
+    name: Joi.string().min(2).max(50).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
     role: Joi.string().valid("admin", "security", "host", "visitor").required()
   }),
 
@@ -28,53 +15,38 @@ const authSchemas = {
   })
 };
 
-// Visitor management schemas
+// Visitor validation
 const visitorSchemas = {
   create: Joi.object({
-    firstName: Joi.string().required().trim(),
-    lastName: Joi.string().required().trim(),
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
     email: Joi.string().email().required(),
     phone: Joi.string().allow("", null),
     company: Joi.string().allow("", null),
     idNumber: Joi.string().allow("", null),
-    notes: Joi.string().allow("", null)
-  }),
-  
-  update: Joi.object({
-    firstName: Joi.string().trim(),
-    lastName: Joi.string().trim(),
-    email: Joi.string().email(),
-    phone: Joi.string().allow("", null),
-    company: Joi.string().allow("", null),
-    idNumber: Joi.string().allow("", null),
-    notes: Joi.string().allow("", null)
+    notes: Joi.string().allow("", null),
+    password: Joi.string().min(6)
   })
 };
 
-// Appointment management schemas
+// Appointment validation
 const appointmentSchemas = {
   create: Joi.object({
-    visitorId: Joi.string().hex().length(24).required().messages({
-      "string.length": "Invalid Visitor ID format"
-    }),
-    hostId: Joi.string().hex().length(24).required(),
-    purpose: Joi.string().required().min(3),
-    startTime: Joi.date().iso().required(),
-    endTime: Joi.date().iso().greater(Joi.ref("startTime")).required()
-  }),
-  
-  updateStatus: Joi.object({
-    status: Joi.string().valid("approved", "rejected", "cancelled").required()
+    visitorId: Joi.string().required(),
+    hostId: Joi.string().required(),
+    purpose: Joi.string().required(),
+    startTime: Joi.date().required(),
+    endTime: Joi.date().required()
   })
 };
 
-// Pass issuance schemas
+// Pass validation
 const passSchemas = {
   issue: Joi.object({
-    visitorId: Joi.string().hex().length(24).required(),
-    appointmentId: Joi.string().hex().length(24).allow(null, ""),
-    validFrom: Joi.date().iso().required(),
-    validTo: Joi.date().iso().greater(Joi.ref("validFrom")).required()
+    visitorId: Joi.string().required(),
+    appointmentId: Joi.string().allow(null, ""),
+    validFrom: Joi.date().required(),
+    validTo: Joi.date().required()
   })
 };
 
