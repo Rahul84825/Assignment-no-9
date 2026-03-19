@@ -95,6 +95,8 @@ exports.issuePass = async (req, res, next) => {
     // generate qr image
     const qrUrl = await generateQrDataUrl(qrData);
 
+    const hostName = appointment && appointment.host ? appointment.host.name : "Walk-in";
+
     // create PDF pass with visitor + QR details
     const pdfPath = await generatePassPdf({
       pass,

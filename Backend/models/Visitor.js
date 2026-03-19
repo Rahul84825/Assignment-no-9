@@ -11,9 +11,6 @@ const visitorSchema = new mongoose.Schema(
     photoUrl: { type: String },
     notes: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    photo: {
-      type: String, // store file path
-    },
   },
   { timestamps: true },
 );

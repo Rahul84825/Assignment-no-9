@@ -8,55 +8,35 @@ const roles = ["admin", "security", "host"];
 
 // function to generate JWT token
 const genToken = (user) => {
-  // payload contains user id and role
   return jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" } // token valid for 7 days can be changed to whatever number 
+    { expiresIn: "7d" }
   );
 };
 
-// register normal users (admin, host, security)
+// register normal users
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
+    const cleanEmail = email.toLowerCase();
 
-    const cleanEmail = email.trim().toLowerCase();
+    const exists = await User.findOne({ email: cleanEmail });
+    if (exists) return res.status(400).json({ message: "Email taken" });
 
-    // check if email already exists or not
-    const existingUser = await User.findOne({ email: cleanEmail });
-    if (existingUser) {
-      return res.status(409).json({
-        message: "Email already exists",
-      });
-    }
-
-    // hashing password before saving
     const hashed = await hashPassword(password);
-
-    const user = new User({
+    const user = await User.create({
       name,
       email: cleanEmail,
       passwordHash: hashed,
-      role,
+      role
     });
-
-    await user.save();
-    console.log(`[User Created] ID: ${user._id}, Role: ${user.role}`);
-
-    // generate JWT token
-    const token = genToken(user);
 
     res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        role: user.role,
-      },
+      token: genToken(user),
+      user: { id: user._id, name: user.name, role: user.role }
     });
   } catch (err) {
-    console.error(`[Registration Error] ${err.message}`);
     next(err);
   }
 };
@@ -65,55 +45,32 @@ exports.register = async (req, res, next) => {
 exports.registerVisitor = async (req, res, next) => {
   try {
     const { firstName, lastName, email, phone, password, company, idNumber } = req.body;
+    const cleanEmail = email.toLowerCase();
 
-    const cleanEmail = email.trim().toLowerCase();
+    const exists = await User.findOne({ email: cleanEmail });
+    if (exists) return res.status(400).json({ message: "User exists" });
 
-    // check if already registered
-    const existing = await User.findOne({ email: cleanEmail });
-    if (existing) {
-      return res.status(409).json({
-        message: "User already exists",
-      });
-    }
-
-    // get uploaded file
-    const photo = req.file ? req.file.path : null;
-
-    const visitor = new Visitor({
+    const visitor = await Visitor.create({
       firstName,
       lastName,
       email: cleanEmail,
       phone,
       company,
       idNumber,
-      photo, // save image path
+      photoUrl: req.file ? req.file.path : null
     });
 
-    await visitor.save();
-
-    // create user login for visitor
     const hashed = await hashPassword(password);
-
-    const user = new User({
-      name: firstName + " " + lastName,
+    const user = await User.create({
+      name: `${firstName} ${lastName}`,
       email: cleanEmail,
       passwordHash: hashed,
-      role: "visitor",
+      role: "visitor"
     });
 
-    await user.save();
-
-    // generate token
-    const token = genToken(user);
-
     res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        role: user.role,
-        visitorId: visitor._id,
-      },
+      token: genToken(user),
+      user: { id: user._id, name: user.name, role: user.role }
     });
   } catch (err) {
     next(err);

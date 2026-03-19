@@ -3,9 +3,7 @@ const { CheckLog } = require("../models/CheckLog.js");
 const { Parser } = require("json2csv");
 const PDFDocument = require("pdfkit");
 
-/**
- * Get dashboard summary statistics
- */
+// Get Summary
 exports.getSummary = async (req, res, next) => {
   try {
     const totalPasses = await Pass.countDocuments();
@@ -22,9 +20,7 @@ exports.getSummary = async (req, res, next) => {
   }
 };
 
-/**
- * Export logs as CSV
- */
+// Exports CSV
 exports.exportCSV = async (req, res, next) => {
   try {
     const logs = await CheckLog.find()
@@ -53,7 +49,7 @@ exports.exportCSV = async (req, res, next) => {
   }
 };
 
-// export logs as PDF
+// exports PDF
 exports.exportPDF = async (req, res, next) => {
   try {
     const logs = await CheckLog.find()
